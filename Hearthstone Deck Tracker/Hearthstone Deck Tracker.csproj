@@ -1331,6 +1331,9 @@ if "$(ConfigurationName)" == "Release" (
     xcopy /Y "*.dll" "..\Hearthstone Deck Tracker"
     xcopy /Y "..\..\..\..\HDTUpdate\bin\Release\HDTUpdate.exe" "..\Hearthstone Deck Tracker"
     xcopy /Y "..\..\..\..\HDTUninstaller\bin\Release\HDTUninstaller.exe" "..\Hearthstone Deck Tracker"
+    signtool sign /a /f "..\..\..\HearthSimCodeSigningCert.pfx" /p %HearthSimCert% "..\Hearthstone Deck Tracker\Hearthstone Deck Tracker.exe"
+    signtool sign /a /f "..\..\..\HearthSimCodeSigningCert.pfx" /p %HearthSimCert% "..\Hearthstone Deck Tracker\HDTUninstaller.exe"
+    signtool sign /a /f "..\..\..\HearthSimCodeSigningCert.pfx" /p %HearthSimCert% "..\Hearthstone Deck Tracker\HDTUpdate.exe"
 )</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
@@ -1351,6 +1354,6 @@ xcopy /E /Y "$(ProjectDir)Images\Themes" "$(TargetDir)\Images\Themes"</PreBuildE
       <Output TaskParameter="Assemblies" ItemName="myAssemblyInfo" />
     </GetAssemblyIdentity>
     <Exec Command="nuget pack hdt.nuspec -Version %(myAssemblyInfo.Version) -Properties Configuration=Release -OutputDirectory ./bin/x86/SquirrelNu/" />
-    <Exec Command="Squirrel --releasify ./bin/x86/SquirrelNu/HearthstoneDeckTracker.%(myAssemblyInfo.Version).nupkg --setupIcon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --icon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --no-msi" />
+    <Exec Command="Squirrel --releasify ./bin/x86/SquirrelNu/HearthstoneDeckTracker.%(myAssemblyInfo.Version).nupkg --setupIcon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --icon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --no-msi -n &quot;/a /f HearthSimCodeSigningCert.pfx /p %HearthSimCert%&quot;" />
   </Target>
 </Project>
