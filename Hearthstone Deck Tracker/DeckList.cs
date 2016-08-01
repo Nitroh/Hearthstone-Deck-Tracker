@@ -33,6 +33,7 @@ namespace Hearthstone_Deck_Tracker
 		{
 			Decks = new ObservableCollection<Deck>();
 			AllTags = new List<string>();
+			LastDeckClass = new List<DeckInfo>();
 		}
 
 		[XmlIgnore]
@@ -71,7 +72,9 @@ namespace Hearthstone_Deck_Tracker
 
 		private static DeckList Load()
 		{
+#if(!SQUIRREL)
 			SetupDeckListFile();
+#endif
 			var file = Config.Instance.DataDir + "PlayerDecks.xml";
 			if(!File.Exists(file))
 				return new DeckList();
@@ -80,39 +83,18 @@ namespace Hearthstone_Deck_Tracker
 			{
 				instance = XmlManager<DeckList>.Load(file);
 			}
-			catch(Exception)
+			catch(Exception ex)
 			{
-				//failed loading deckstats 
-				var corruptedFile = Helper.GetValidFilePath(Config.Instance.DataDir, "PlayerDecks_corrupted", "xml");
+				Log.Error(ex);
 				try
 				{
-					File.Move(file, corruptedFile);
+					File.Move(file, Helper.GetValidFilePath(Config.Instance.DataDir, "PlayerDecks_corrupted", "xml"));
 				}
-				catch(Exception)
+				catch(Exception ex1)
 				{
-					throw new Exception(
-						"Can not load or move PlayerDecks.xml file. Please manually delete the file in \"%appdata\\HearthstoneDeckTracker\".");
+					Log.Error(ex1);
 				}
-
-				//get latest backup file
-				var backup =
-					new DirectoryInfo(Config.Instance.DataDir).GetFiles("PlayerDecks_backup*").OrderByDescending(x => x.CreationTime).FirstOrDefault();
-				if(backup != null)
-				{
-					try
-					{
-						File.Copy(backup.FullName, file);
-						instance = XmlManager<DeckList>.Load(file);
-					}
-					catch(Exception ex)
-					{
-						throw new Exception(
-							"Error restoring PlayerDecks backup. Please manually rename \"PlayerDecks_backup.xml\" to \"PlayerDecks.xml\" in \"%appdata\\HearthstoneDeckTracker\".",
-							ex);
-					}
-				}
-				else
-					throw new Exception("PlayerDecks.xml is corrupted.");
+				instance = BackupManager.TryRestore<DeckList>("PlayerDecks.xml");
 			}
 
 			var save = false;
@@ -141,12 +123,13 @@ namespace Hearthstone_Deck_Tracker
 			return instance;
 		}
 
+#if(!SQUIRREL)
 		internal static void SetupDeckListFile()
 		{
 			if(Config.Instance.SaveDataInAppData == null)
 				return;
-			var appDataPath = Config.AppDataPath + @"\PlayerDecks.xml";
-			var dataDirPath = Config.Instance.DataDirPath + @"\PlayerDecks.xml";
+			var appDataPath = Path.Combine(Config.AppDataPath, "PlayerDecks.xml");
+			var dataDirPath = Path.Combine(Config.Instance.DataDirPath, "PlayerDecks.xml");
 			if(Config.Instance.SaveDataInAppData.Value)
 			{
 				if(File.Exists(dataDirPath))
@@ -166,16 +149,9 @@ namespace Hearthstone_Deck_Tracker
 				File.Move(appDataPath, dataDirPath);
 				Log.Info("Moved decks to local");
 			}
-
-			//create file if it doesn't exist
-			var path = Path.Combine(Config.Instance.DataDir, "PlayerDecks.xml");
-			if(!File.Exists(path))
-			{
-				using(var sr = new StreamWriter(path, false))
-					sr.WriteLine("<Decks></Decks>");
-			}
 		}
 
+#endif
 		private static void Save(DeckList instance) => XmlManager<DeckList>.Save(Config.Instance.DataDir + "PlayerDecks.xml", instance);
 		public static void Save() => Save(Instance);
 
