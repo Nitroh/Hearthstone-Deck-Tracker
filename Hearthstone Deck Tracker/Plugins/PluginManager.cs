@@ -16,6 +16,7 @@ namespace Hearthstone_Deck_Tracker.Plugins
 	{
 		private const string DefaultPath = "Plugins";
 		private const string NoticeFileName = "READ THIS.txt";
+		private const string TriggerTypeName = "MergedTrigger";
 		private static PluginManager _instance;
 		private bool _update;
 		public static DirectoryInfo LocalPluginDirectory => new DirectoryInfo(DefaultPath);
@@ -24,6 +25,17 @@ namespace Hearthstone_Deck_Tracker.Plugins
 		private PluginManager()
 		{
 			Plugins = new List<PluginWrapper>();
+			try
+			{
+				if(!LocalPluginDirectory.Exists)
+					LocalPluginDirectory.Create();
+				if(!PluginDirectory.Exists)
+					PluginDirectory.Create();
+			}
+			catch(Exception ex)
+			{
+				Log.Error(ex);
+			}
 			SyncPlugins(PluginDirectory, LocalPluginDirectory, LocalPluginDirectory);
 			CreateNoticeFile();
 		}
@@ -31,7 +43,19 @@ namespace Hearthstone_Deck_Tracker.Plugins
 
 		private void CreateNoticeFile()
 		{
-			var file = Path.Combine(LocalPluginDirectory.FullName, NoticeFileName);
+			var file = Path.Combine(PluginDirectory.FullName, NoticeFileName);
+			if(File.Exists(file))
+			{
+				try
+				{
+					File.Delete(file);
+				}
+				catch(Exception ex)
+				{
+					Log.Error(ex);
+				}
+			}
+			file = Path.Combine(LocalPluginDirectory.FullName, NoticeFileName);
 			if(File.Exists(file))
 				return;
 			try
@@ -67,7 +91,7 @@ namespace Hearthstone_Deck_Tracker.Plugins
 						continue;
 					var destPath = Path.Combine(destDir.FullName, file.Name);
 					Log.Info($"{(destFile == null ? "Adding" : "Updating")} {((destFile?.FullName) ?? Path.Combine(destDir.FullName, file.Name)).Substring(baseDir.FullName.Length + 1)}");
-					File.Copy(file.FullName, destPath);
+					File.Copy(file.FullName, destPath, true);
 				}
 				catch(Exception ex)
 				{
@@ -164,6 +188,8 @@ namespace Hearthstone_Deck_Tracker.Plugins
 			try
 			{
 				var assembly = Assembly.LoadFrom(pFileName);
+				// trigger the loading of embedded dependencies
+				TriggerAssembly(assembly);
 				foreach(var type in assembly.GetTypes())
 				{
 					try
@@ -248,6 +274,23 @@ namespace Hearthstone_Deck_Tracker.Plugins
 			catch(Exception ex)
 			{
 				Log.Error("Error saving plugin settings:\n" + ex);
+			}
+		}
+
+		// Triggers an assembly with embedded dependencies to load its internal assembly
+		// resolver by instantiating a known type (TriggerType) in the default namespace, 
+		// this avoids errors when using reflection. Costura.Fody and other tools can 
+		// create these kinds of merged assemblies.
+		private void TriggerAssembly(Assembly assembly)
+		{
+			try
+			{
+				if(assembly.CreateInstance(TriggerTypeName) != null)
+					Log.Debug($"Created {TriggerTypeName} in {assembly.GetName().Name}", "Trigger");
+			}
+			catch(Exception ex)
+			{
+				Log.Debug($"Creating {TriggerTypeName} in {assembly.GetName().Name} errored ({ex.Message})", "Trigger");
 			}
 		}
 	}

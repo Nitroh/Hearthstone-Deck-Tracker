@@ -31,13 +31,25 @@ namespace Hearthstone_Deck_Tracker.Hearthstone
 			{17, "Hero Skins"},
 			{18, "Tavern Brawl"},
 			{20, "League of Explorers"},
-			{21, "Whispers of the Old Gods"}
+			{21, "Whispers of the Old Gods"},
+			{23, "One Night in Karazhan"}
 		};
 
 		public static string ConvertClass(CardClass cardClass) => (int)cardClass < 2 || (int)cardClass > 10
 																	  ? null : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(cardClass.ToString().ToLowerInvariant());
 
-		public static string CardTypeConverter(CardType type) => type == CardType.HERO_POWER ? "Hero Power" : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(type.ToString().ToLowerInvariant().Replace("_", ""));
+		public static string CardTypeConverter(CardType type)
+		{
+			switch(type)
+			{
+				case CardType.ABILITY:
+					return "Spell";
+				case CardType.HERO_POWER:
+					return "Hero Power";
+				default:
+					return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(type.ToString().ToLowerInvariant());
+			}
+		}
 
 
 		public static string RaceConverter(Race race)

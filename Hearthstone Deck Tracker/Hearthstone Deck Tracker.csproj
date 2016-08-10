@@ -121,7 +121,8 @@
       <HintPath>..\packages\HtmlAgilityPack.1.4.6\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\squirrel.windows.1.4.0\lib\Net45\ICSharpCode.SharpZipLib.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\squirrel.windows.1.4.2\lib\Net45\ICSharpCode.SharpZipLib.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="MahApps.Metro, Version=1.1.2.0, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f, processorArchitecture=MSIL">
@@ -149,7 +150,8 @@
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="NuGet.Squirrel, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\squirrel.windows.1.4.0\lib\Net45\NuGet.Squirrel.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\squirrel.windows.1.4.2\lib\Net45\NuGet.Squirrel.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="PresentationUI, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
@@ -162,8 +164,9 @@
       <HintPath>..\packages\Splat.1.6.2\lib\Net45\Splat.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Squirrel, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\squirrel.windows.1.4.0\lib\Net45\Squirrel.dll</HintPath>
+    <Reference Include="Squirrel, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\squirrel.windows.1.4.2\lib\Net45\Squirrel.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -204,6 +207,7 @@
     <Compile Include="API\GameEvents.cs" />
     <Compile Include="API\LogEvents.cs" />
     <Compile Include="API\Overlay.cs" />
+    <Compile Include="API\PredamageInfo.cs" />
     <Compile Include="Controls\AnimatedCard.xaml.cs">
       <DependentUpon>AnimatedCard.xaml</DependentUpon>
     </Compile>
@@ -395,6 +399,7 @@
     <Compile Include="Hearthstone\PredictedCard.cs" />
     <Compile Include="Importing\Game\ImportOptions\IImportOption.cs" />
     <Compile Include="Importing\Websites\Manacrystals.cs" />
+    <Compile Include="Importing\Websites\Marduktv.cs" />
     <Compile Include="Importing\Websites\Powned.cs" />
     <Compile Include="LogReader\Handlers\FullScreenFxHandler.cs" />
     <Compile Include="Importing\Game\ImportOptions\NewDeck.cs" />
@@ -1325,7 +1330,6 @@
     mkdir "..\SquirrelNu"
     mkdir "..\Squirrel-Clean"
     mkdir "..\Squirrel-Clean/Images"
-    mkdir "..\Squirrel-Clean/Plugins"
     xcopy /E /Y /Q "Images\*.*" "..\Squirrel-Clean\Images"
     xcopy /Y "HearthstoneDeckTracker.exe" "..\Squirrel-Clean"
     xcopy /Y "HearthstoneDeckTracker.exe.config" "..\Squirrel-Clean"
@@ -1335,7 +1339,6 @@ if "$(ConfigurationName)" == "Release" (
     rmdir /S /Q "..\Hearthstone Deck Tracker"
     mkdir "..\Hearthstone Deck Tracker"
     mkdir "..\Hearthstone Deck Tracker/Images"
-    mkdir "..\Hearthstone Deck Tracker/Plugins"
     xcopy /E /Y /Q "Images\*.*" "..\Hearthstone Deck Tracker\Images"
     xcopy /Y "HearthstoneDeckTracker.exe" "..\Hearthstone Deck Tracker"
     xcopy /Y "HearthstoneDeckTracker.exe.config" "..\Hearthstone Deck Tracker"
@@ -1372,11 +1375,26 @@ xcopy /E /Y /Q "$(ProjectDir)Images\Themes" "$(TargetDir)\Images\Themes"</PreBui
   <Target Name="AfterBuild">
   </Target>
   -->
-  <Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Squirrel'">
+  <Target Name="AfterBuild">
+    <CallTarget Condition=" '$(Configuration)' == 'Squirrel'" Targets="SquirrelAfterBuild"/>
+    <CallTarget Condition=" '$(Configuration)' == 'Release'" Targets="ReleaseAfterBuild"/>
+  </Target>
+  <Target Name="SquirrelAfterBuild">
     <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
       <Output TaskParameter="Assemblies" ItemName="myAssemblyInfo" />
     </GetAssemblyIdentity>
     <Exec Command="nuget pack hdt.nuspec -Version %(myAssemblyInfo.Version) -Properties Configuration=Release -OutputDirectory ./bin/x86/SquirrelNu/" />
     <Exec Command="Squirrel --releasify ./bin/x86/SquirrelNu/HearthstoneDeckTracker.%(myAssemblyInfo.Version).nupkg --setupIcon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --icon=bin\x86\Squirrel\Images\HearthstoneDeckTracker.ico --no-msi -n &quot;/tr http://timestamp.digicert.com /a /f HearthSimCodeSigningCert.pfx /p %HearthSimCert%&quot;" />
+  </Target>
+  <Target Name="ReleaseAfterBuild">
+    <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+      <Output TaskParameter="Assemblies" ItemName="myAssemblyInfo" />
+    </GetAssemblyIdentity>
+    <PropertyGroup>
+        <Regex>(\d+)\.(\d+)\.(\d+)(\.[1-9]\d*)?</Regex>
+        <Version>$([System.Text.RegularExpressions.Regex]::Match(%(myAssemblyInfo.Version), $(Regex)))</Version>
+    </PropertyGroup>
+    <Exec Command="if not exist Releases mkdir Releases" />
+    <Exec Command="cd bin/x86 &amp; zip -9 -r -q ../../Releases/Hearthstone.Deck.Tracker-v$(Version).zip &quot;Hearthstone Deck Tracker&quot;" />
   </Target>
 </Project>
